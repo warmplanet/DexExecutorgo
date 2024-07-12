@@ -1,0 +1,6 @@
+[submodule "proto"]
+	path = proto
+	url = https://github.com/warmplanet/proto.git
+[submodule "clients"]
+	path = clients
+	url = https://github.com/warmplanet/clients.git
