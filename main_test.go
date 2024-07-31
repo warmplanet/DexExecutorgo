@@ -27,79 +27,91 @@ type TraceCallResTestA struct {
 	} `json:"result"`
 }
 
+//type TraceCallResTestB struct {
+//	Calls []struct {
+//		Calls []struct {
+//			Calls []struct {
+//				From    string `json:"from"`
+//				Gas     string `json:"gas"`
+//				GasUsed string `json:"gasUsed"`
+//				Input   string `json:"input"`
+//				Output  string `json:"output,omitempty"`
+//				To      string `json:"to"`
+//				Type    string `json:"type"`
+//				Value   string `json:"value,omitempty"`
+//				Calls   []struct {
+//					From    string `json:"from"`
+//					Gas     string `json:"gas"`
+//					GasUsed string `json:"gasUsed"`
+//					Input   string `json:"input"`
+//					Output  string `json:"output,omitempty"`
+//					To      string `json:"to"`
+//					Type    string `json:"type"`
+//					Value   string `json:"value"`
+//					Calls   []struct {
+//						Calls []struct {
+//							From    string `json:"from"`
+//							Gas     string `json:"gas"`
+//							GasUsed string `json:"gasUsed"`
+//							Input   string `json:"input"`
+//							Output  string `json:"output"`
+//							To      string `json:"to"`
+//							Type    string `json:"type"`
+//							Value   string `json:"value"`
+//						} `json:"calls"`
+//						From    string `json:"from"`
+//						Gas     string `json:"gas"`
+//						GasUsed string `json:"gasUsed"`
+//						Input   string `json:"input"`
+//						Output  string `json:"output"`
+//						To      string `json:"to"`
+//						Type    string `json:"type"`
+//						Value   string `json:"value"`
+//					} `json:"calls,omitempty"`
+//				} `json:"calls,omitempty"`
+//			} `json:"calls"`
+//			From    string `json:"from"`
+//			Gas     string `json:"gas"`
+//			GasUsed string `json:"gasUsed"`
+//			Input   string `json:"input"`
+//			Output  string `json:"output"`
+//			To      string `json:"to"`
+//			Type    string `json:"type"`
+//			Value   string `json:"value"`
+//		} `json:"calls"`
+//		Error        string `json:"error"`
+//		From         string `json:"from"`
+//		Gas          string `json:"gas"`
+//		GasUsed      string `json:"gasUsed"`
+//		Input        string `json:"input"`
+//		Output       string `json:"output"`
+//		RevertReason string `json:"revertReason"`
+//		To           string `json:"to"`
+//		Type         string `json:"type"`
+//		Value        string `json:"value"`
+//	} `json:"calls"`
+//	Error        string `json:"error"`
+//	From         string `json:"from"`
+//	Gas          string `json:"gas"`
+//	GasUsed      string `json:"gasUsed"`
+//	Input        string `json:"input"`
+//	Output       string `json:"output"`
+//	RevertReason string `json:"revertReason"`
+//	To           string `json:"to"`
+//	Type         string `json:"type"`
+//	Value        string `json:"value"`
+//}
+
 type TraceCallResTestB struct {
-	Calls []struct {
-		Calls []struct {
-			Calls []struct {
-				From    string `json:"from"`
-				Gas     string `json:"gas"`
-				GasUsed string `json:"gasUsed"`
-				Input   string `json:"input"`
-				Output  string `json:"output,omitempty"`
-				To      string `json:"to"`
-				Type    string `json:"type"`
-				Value   string `json:"value,omitempty"`
-				Calls   []struct {
-					From    string `json:"from"`
-					Gas     string `json:"gas"`
-					GasUsed string `json:"gasUsed"`
-					Input   string `json:"input"`
-					Output  string `json:"output,omitempty"`
-					To      string `json:"to"`
-					Type    string `json:"type"`
-					Value   string `json:"value"`
-					Calls   []struct {
-						Calls []struct {
-							From    string `json:"from"`
-							Gas     string `json:"gas"`
-							GasUsed string `json:"gasUsed"`
-							Input   string `json:"input"`
-							Output  string `json:"output"`
-							To      string `json:"to"`
-							Type    string `json:"type"`
-							Value   string `json:"value"`
-						} `json:"calls"`
-						From    string `json:"from"`
-						Gas     string `json:"gas"`
-						GasUsed string `json:"gasUsed"`
-						Input   string `json:"input"`
-						Output  string `json:"output"`
-						To      string `json:"to"`
-						Type    string `json:"type"`
-						Value   string `json:"value"`
-					} `json:"calls,omitempty"`
-				} `json:"calls,omitempty"`
-			} `json:"calls"`
-			From    string `json:"from"`
-			Gas     string `json:"gas"`
-			GasUsed string `json:"gasUsed"`
-			Input   string `json:"input"`
-			Output  string `json:"output"`
-			To      string `json:"to"`
-			Type    string `json:"type"`
-			Value   string `json:"value"`
-		} `json:"calls"`
-		Error        string `json:"error"`
-		From         string `json:"from"`
-		Gas          string `json:"gas"`
-		GasUsed      string `json:"gasUsed"`
-		Input        string `json:"input"`
-		Output       string `json:"output"`
-		RevertReason string `json:"revertReason"`
-		To           string `json:"to"`
-		Type         string `json:"type"`
-		Value        string `json:"value"`
-	} `json:"calls"`
-	Error        string `json:"error"`
-	From         string `json:"from"`
-	Gas          string `json:"gas"`
-	GasUsed      string `json:"gasUsed"`
-	Input        string `json:"input"`
-	Output       string `json:"output"`
-	RevertReason string `json:"revertReason"`
-	To           string `json:"to"`
-	Type         string `json:"type"`
-	Value        string `json:"value"`
+	From    string              `json:"from"`
+	Gas     string              `json:"gas"`
+	GasUsed string              `json:"gasUsed"`
+	To      string              `json:"to"`
+	Input   string              `json:"input"`
+	Output  string              `json:"output"`
+	Value   string              `json:"value,omitempty"`
+	Type    string              `json:"type"`
+	Call    []TraceCallResTestB `json:"calls,omitempty"`
 }
 
 type DebugTraceCallReq struct {
