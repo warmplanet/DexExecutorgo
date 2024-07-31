@@ -1,0 +1,44 @@
+# 基本配置项
+log_level = "info"
+log_path = "../logs"
+env = "prod" # 运行时环境
+is_test = false
+#proxy = "http://127.0.0.1:7890"
+
+[nats]
+servers = ["nats://127.0.0.1:4244"]
+connection_name = "avalanche"
+nkeys_seed = "" # 用于nats认证的nkey token
+connect_timeout = "200s" # 最大连接超时时间
+reconnect_wait = "2s" # 重连时间间隔
+max_reconnects = 10  # 最多重连次数，达到后彻底关闭连接
+# 发送端最大发送缓冲，用于缓存连接断开时发送的消息，连接恢复后会一次性发送所有消息，
+# 如果不希望发送积压的历史消息，可以设置成1避免缓存消息
+reconnect_buf_size = 1 #8388608
+ping_interval = "2m" # ping间隔时间
+max_pings_outstanding = 20 # 最大未回应ping数量
+
+[enemies]
+avalanche = [
+    "0x802b65b5d9016621e66003aed0b16615093f328b"
+]
+
+
+[chain.avalanche_v1]
+endpoint = "http://10.9.1.97:9650/ext/bc/C/rpc"
+ws_endpoint = "ws://10.9.1.97:9650/ext/bc/C/ws"
+#router.traderjoe = "0xb4315e873dbcf96ffd0acd8ea43f689d8c20fb30"
+router.traderjoe = "0x18556DA13313f3532c54711497A8FedAC273220E"
+router.avaxuniswap = "0x4Dae2f939ACf50408e13d58534Ff8c2776d45265"
+
+tokens.avax = { address = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7', decimal= 18 }
+tokens.eth = { address = '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB', decimal= 18 }
+tokens.btc = { address = '0x152b9d0FdC40C096757F570A51E494bd4b943E50', decimal= 8 }
+tokens.gmx = { address = '0x62edc0692BD897D2295872a9FFCac5425011c661', decimal= 18 }
+tokens.usdc = { address = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', decimal= 6 }
+tokens.usdt = { address = '0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7', decimal= 6 }
+tokens.joe = { address = '0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd', decimal= 18 }
+
+#[chain.bsc_v1]
+#endpoint = ""
+#ws_endpoint = ""
