@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-type TraceCallResTest struct {
+type TraceCallResTestA struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Id      int    `json:"id"`
 	Result  struct {
@@ -25,6 +25,81 @@ type TraceCallResTest struct {
 		Value string `json:"value"`
 		Type  string `json:"type"`
 	} `json:"result"`
+}
+
+type TraceCallResTestB struct {
+	Calls []struct {
+		Calls []struct {
+			Calls []struct {
+				From    string `json:"from"`
+				Gas     string `json:"gas"`
+				GasUsed string `json:"gasUsed"`
+				Input   string `json:"input"`
+				Output  string `json:"output,omitempty"`
+				To      string `json:"to"`
+				Type    string `json:"type"`
+				Value   string `json:"value,omitempty"`
+				Calls   []struct {
+					From    string `json:"from"`
+					Gas     string `json:"gas"`
+					GasUsed string `json:"gasUsed"`
+					Input   string `json:"input"`
+					Output  string `json:"output,omitempty"`
+					To      string `json:"to"`
+					Type    string `json:"type"`
+					Value   string `json:"value"`
+					Calls   []struct {
+						Calls []struct {
+							From    string `json:"from"`
+							Gas     string `json:"gas"`
+							GasUsed string `json:"gasUsed"`
+							Input   string `json:"input"`
+							Output  string `json:"output"`
+							To      string `json:"to"`
+							Type    string `json:"type"`
+							Value   string `json:"value"`
+						} `json:"calls"`
+						From    string `json:"from"`
+						Gas     string `json:"gas"`
+						GasUsed string `json:"gasUsed"`
+						Input   string `json:"input"`
+						Output  string `json:"output"`
+						To      string `json:"to"`
+						Type    string `json:"type"`
+						Value   string `json:"value"`
+					} `json:"calls,omitempty"`
+				} `json:"calls,omitempty"`
+			} `json:"calls"`
+			From    string `json:"from"`
+			Gas     string `json:"gas"`
+			GasUsed string `json:"gasUsed"`
+			Input   string `json:"input"`
+			Output  string `json:"output"`
+			To      string `json:"to"`
+			Type    string `json:"type"`
+			Value   string `json:"value"`
+		} `json:"calls"`
+		Error        string `json:"error"`
+		From         string `json:"from"`
+		Gas          string `json:"gas"`
+		GasUsed      string `json:"gasUsed"`
+		Input        string `json:"input"`
+		Output       string `json:"output"`
+		RevertReason string `json:"revertReason"`
+		To           string `json:"to"`
+		Type         string `json:"type"`
+		Value        string `json:"value"`
+	} `json:"calls"`
+	Error        string `json:"error"`
+	From         string `json:"from"`
+	Gas          string `json:"gas"`
+	GasUsed      string `json:"gasUsed"`
+	Input        string `json:"input"`
+	Output       string `json:"output"`
+	RevertReason string `json:"revertReason"`
+	To           string `json:"to"`
+	Type         string `json:"type"`
+	Value        string `json:"value"`
 }
 
 type DebugTraceCallReq struct {
@@ -108,7 +183,7 @@ func TestDebugTraceCall(t *testing.T) {
 	err = ethClient.Client().Call(&result, "debug_traceCall", paramsa, "latest", paramsb)
 
 	tmp, _ := json.Marshal(result)
-	var resTraceCall TraceCallResTest
+	var resTraceCall TraceCallResTestB
 	err = json.Unmarshal(tmp, &resTraceCall)
 	if err == nil {
 		fmt.Println(string(tmp))
