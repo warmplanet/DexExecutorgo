@@ -167,5 +167,13 @@ func TestDebugTraceCall(t *testing.T) {
 	fmt.Println(string(reqByte))
 	ethClient, err := ethclient.Dial(rpcUrl)
 	err = ethClient.Client().Call(&result, "debug_traceCall", paramsa, "latest", paramsb)
-	fmt.Println(result, err)
+
+	tmp, _ := json.Marshal(result)
+	var resTraceCall TraceCallResTest
+	err = json.Unmarshal(tmp, &resTraceCall)
+	if err != nil {
+		fmt.Println(resTraceCall)
+	} else {
+		fmt.Println(err)
+	}
 }
