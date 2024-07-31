@@ -88,6 +88,8 @@ func TestDebugTraceCall(t *testing.T) {
 				OnlyTopCall: false,
 			},
 		}
+
+		addresses []string
 	)
 
 	ethClient, err := ethclient.Dial(rpcUrl)
@@ -97,11 +99,19 @@ func TestDebugTraceCall(t *testing.T) {
 	var resTraceCall TraceCallResTestB
 	err = json.Unmarshal(tmp, &resTraceCall)
 	if err == nil {
-		fmt.Println(string(tmp))
-		fmt.Println("11111")
-		fmt.Println(resTraceCall)
+		GetAllAddress([]TraceCallResTestB{resTraceCall}, addresses)
+		fmt.Println(addresses)
 	} else {
 		fmt.Println("22222")
 		fmt.Println(err)
+	}
+}
+
+func GetAllAddress(callsRes []TraceCallResTestB, addresses []string) {
+	if len(callsRes) != 0 {
+		for _, call := range callsRes {
+			addresses = append(addresses, call.To)
+			GetAllAddress(call.Call, addresses)
+		}
 	}
 }
