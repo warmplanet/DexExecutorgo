@@ -88,16 +88,8 @@ func TestDebugTraceCall(t *testing.T) {
 				OnlyTopCall: false,
 			},
 		}
-		req = DebugTraceCallReq{
-			Method:  "debug_traceCall",
-			Params:  []interface{}{paramsa, "latest", paramsb},
-			Id:      1,
-			Jsonrpc: "2.0",
-		}
 	)
 
-	reqByte, _ := json.Marshal(req)
-	fmt.Println(string(reqByte))
 	ethClient, err := ethclient.Dial(rpcUrl)
 	err = ethClient.Client().Call(&result, "debug_traceCall", paramsa, "latest", paramsb)
 
@@ -105,6 +97,7 @@ func TestDebugTraceCall(t *testing.T) {
 	var resTraceCall TraceCallResTestB
 	err = json.Unmarshal(tmp, &resTraceCall)
 	if err == nil {
+		fmt.Println(string(tmp))
 		fmt.Println("11111")
 		fmt.Println(resTraceCall)
 	} else {
