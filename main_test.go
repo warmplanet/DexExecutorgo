@@ -9,34 +9,83 @@ import (
 	"testing"
 )
 
-type TestPendingTx struct {
+type TraceCallResTest struct {
 	Jsonrpc string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  struct {
-		Subscription string `json:"subscription"`
-		Result       struct {
-			BlockHash            string        `json:"blockHash"`
-			BlockNumber          string        `json:"blockNumber"`
-			From                 string        `json:"from"`
-			Gas                  string        `json:"gas"`
-			GasPrice             string        `json:"gasPrice"`
-			MaxFeePerGas         string        `json:"maxFeePerGas"`
-			MaxPriorityFeePerGas string        `json:"maxPriorityFeePerGas"`
-			Hash                 string        `json:"hash"`
-			Input                string        `json:"input"`
-			Nonce                string        `json:"nonce"`
-			To                   string        `json:"to"`
-			TransactionIndex     string        `json:"transactionIndex"`
-			Value                string        `json:"value"`
-			Type                 string        `json:"type"`
-			AccessList           []interface{} `json:"accessList"`
-			ChainId              string        `json:"chainId"`
-			V                    string        `json:"v"`
-			R                    string        `json:"r"`
-			S                    string        `json:"s"`
-			YParity              string        `json:"yParity"`
-		} `json:"result"`
-	} `json:"params"`
+	Id      int    `json:"id"`
+	Result  struct {
+		From         string `json:"from"`
+		Gas          string `json:"gas"`
+		GasUsed      string `json:"gasUsed"`
+		To           string `json:"to"`
+		Input        string `json:"input"`
+		Output       string `json:"output"`
+		Error        string `json:"error"`
+		RevertReason string `json:"revertReason"`
+		Calls        []struct {
+			From         string `json:"from"`
+			Gas          string `json:"gas"`
+			GasUsed      string `json:"gasUsed"`
+			To           string `json:"to"`
+			Input        string `json:"input"`
+			Output       string `json:"output"`
+			Error        string `json:"error"`
+			RevertReason string `json:"revertReason"`
+			Calls        []struct {
+				From    string `json:"from"`
+				Gas     string `json:"gas"`
+				GasUsed string `json:"gasUsed"`
+				To      string `json:"to"`
+				Input   string `json:"input"`
+				Output  string `json:"output"`
+				Calls   []struct {
+					From    string `json:"from"`
+					Gas     string `json:"gas"`
+					GasUsed string `json:"gasUsed"`
+					To      string `json:"to"`
+					Input   string `json:"input"`
+					Output  string `json:"output,omitempty"`
+					Value   string `json:"value,omitempty"`
+					Type    string `json:"type"`
+					Calls   []struct {
+						From    string `json:"from"`
+						Gas     string `json:"gas"`
+						GasUsed string `json:"gasUsed"`
+						To      string `json:"to"`
+						Input   string `json:"input"`
+						Output  string `json:"output,omitempty"`
+						Value   string `json:"value"`
+						Type    string `json:"type"`
+						Calls   []struct {
+							From    string `json:"from"`
+							Gas     string `json:"gas"`
+							GasUsed string `json:"gasUsed"`
+							To      string `json:"to"`
+							Input   string `json:"input"`
+							Output  string `json:"output"`
+							Calls   []struct {
+								From    string `json:"from"`
+								Gas     string `json:"gas"`
+								GasUsed string `json:"gasUsed"`
+								To      string `json:"to"`
+								Input   string `json:"input"`
+								Output  string `json:"output"`
+								Value   string `json:"value"`
+								Type    string `json:"type"`
+							} `json:"calls"`
+							Value string `json:"value"`
+							Type  string `json:"type"`
+						} `json:"calls,omitempty"`
+					} `json:"calls,omitempty"`
+				} `json:"calls"`
+				Value string `json:"value"`
+				Type  string `json:"type"`
+			} `json:"calls"`
+			Value string `json:"value"`
+			Type  string `json:"type"`
+		} `json:"calls"`
+		Value string `json:"value"`
+		Type  string `json:"type"`
+	} `json:"result"`
 }
 
 type DebugTraceCallReq struct {
@@ -76,7 +125,7 @@ func TestRouter(t *testing.T) {
 }
 
 func TestDebugTraceCall(t *testing.T) {
-	rpcUrl := "https://avalanche.drpc.org"
+	rpcUrl := "http://10.9.1.97:9650/ext/bc/C/rpc"
 	content, err := os.ReadFile("./test.txt")
 	if err != nil {
 		fmt.Println(err)
@@ -90,7 +139,8 @@ func TestDebugTraceCall(t *testing.T) {
 		return
 	}
 
-	var result core.TraceCallRes
+	//var result core.TraceCallRes
+	var result TraceCallResTest
 	var (
 		paramsa = core.ParamsA{
 			From: pendingTx.Params.Result.From,
@@ -116,6 +166,6 @@ func TestDebugTraceCall(t *testing.T) {
 	reqByte, _ := json.Marshal(req)
 	fmt.Println(string(reqByte))
 	ethClient, err := ethclient.Dial(rpcUrl)
-	err = ethClient.Client().Call(result, "debug_traceCall", paramsa, "latest", paramsb)
+	err = ethClient.Client().Call(&result, "debug_traceCall", paramsa, "latest", paramsb)
 	fmt.Println(result, err)
 }
