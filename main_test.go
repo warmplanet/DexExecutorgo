@@ -111,7 +111,9 @@ func GetAllAddress(callsRes []TraceCallResTestB) (addresses []string) {
 	if len(callsRes) != 0 {
 		for _, call := range callsRes {
 			addresses = append(addresses, call.To)
-			addresses = append(addresses, GetAllAddress(call.Call)...)
+			tmp := GetAllAddress(call.Call)
+			fmt.Println(tmp)
+			addresses = append(addresses, tmp...)
 		}
 	}
 	return addresses
