@@ -140,7 +140,7 @@ func TestDebugTraceCall(t *testing.T) {
 	}
 
 	//var result core.TraceCallRes
-	var result TraceCallResTest
+	var result interface{}
 	var (
 		paramsa = core.ParamsA{
 			From: pendingTx.Params.Result.From,
