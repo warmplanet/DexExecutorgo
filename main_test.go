@@ -99,7 +99,7 @@ func TestDebugTraceCall(t *testing.T) {
 	var resTraceCall TraceCallResTestB
 	err = json.Unmarshal(tmp, &resTraceCall)
 	if err == nil {
-		GetAllAddress([]TraceCallResTestB{resTraceCall}, addresses)
+		addresses = GetAllAddress([]TraceCallResTestB{resTraceCall})
 		fmt.Println(addresses)
 	} else {
 		fmt.Println("22222")
@@ -107,11 +107,12 @@ func TestDebugTraceCall(t *testing.T) {
 	}
 }
 
-func GetAllAddress(callsRes []TraceCallResTestB, addresses []string) {
+func GetAllAddress(callsRes []TraceCallResTestB) (addresses []string) {
 	if len(callsRes) != 0 {
 		for _, call := range callsRes {
 			addresses = append(addresses, call.To)
-			GetAllAddress(call.Call, addresses)
+			addresses = append(addresses, GetAllAddress(call.Call)...)
 		}
 	}
+	return addresses
 }
