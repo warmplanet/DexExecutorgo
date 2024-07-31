@@ -12,19 +12,19 @@ import (
 type TraceCallResTest struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Id      int    `json:"id"`
-	//Result  struct {
-	//	From         string      `json:"from"`
-	//	Gas          string      `json:"gas"`
-	//	GasUsed      string      `json:"gasUsed"`
-	//	To           string      `json:"to"`
-	//	Input        string      `json:"input"`
-	//	Output       string      `json:"output"`
-	//	Error        string      `json:"error"`
-	//	RevertReason string      `json:"revertReason"`
-	//	Calls        interface{} `json:"calls"`
-	//	Value        string      `json:"value"`
-	//	Type         string      `json:"type"`
-	//} `json:"result"`
+	Result  struct {
+		From         string `json:"from"`
+		Gas          string `json:"gas"`
+		GasUsed      string `json:"gasUsed"`
+		To           string `json:"to"`
+		Input        string `json:"input"`
+		Output       string `json:"output"`
+		Error        string `json:"error"`
+		RevertReason string `json:"revertReason"`
+		//Calls        interface{} `json:"calls"`
+		Value string `json:"value"`
+		Type  string `json:"type"`
+	} `json:"result"`
 }
 
 type DebugTraceCallReq struct {
