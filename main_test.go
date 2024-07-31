@@ -13,78 +13,17 @@ type TraceCallResTest struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Id      int    `json:"id"`
 	Result  struct {
-		From         string `json:"from"`
-		Gas          string `json:"gas"`
-		GasUsed      string `json:"gasUsed"`
-		To           string `json:"to"`
-		Input        string `json:"input"`
-		Output       string `json:"output"`
-		Error        string `json:"error"`
-		RevertReason string `json:"revertReason"`
-		Calls        []struct {
-			From         string `json:"from"`
-			Gas          string `json:"gas"`
-			GasUsed      string `json:"gasUsed"`
-			To           string `json:"to"`
-			Input        string `json:"input"`
-			Output       string `json:"output"`
-			Error        string `json:"error"`
-			RevertReason string `json:"revertReason"`
-			Calls        []struct {
-				From    string `json:"from"`
-				Gas     string `json:"gas"`
-				GasUsed string `json:"gasUsed"`
-				To      string `json:"to"`
-				Input   string `json:"input"`
-				Output  string `json:"output"`
-				Calls   []struct {
-					From    string `json:"from"`
-					Gas     string `json:"gas"`
-					GasUsed string `json:"gasUsed"`
-					To      string `json:"to"`
-					Input   string `json:"input"`
-					Output  string `json:"output,omitempty"`
-					Value   string `json:"value,omitempty"`
-					Type    string `json:"type"`
-					Calls   []struct {
-						From    string `json:"from"`
-						Gas     string `json:"gas"`
-						GasUsed string `json:"gasUsed"`
-						To      string `json:"to"`
-						Input   string `json:"input"`
-						Output  string `json:"output,omitempty"`
-						Value   string `json:"value"`
-						Type    string `json:"type"`
-						Calls   []struct {
-							From    string `json:"from"`
-							Gas     string `json:"gas"`
-							GasUsed string `json:"gasUsed"`
-							To      string `json:"to"`
-							Input   string `json:"input"`
-							Output  string `json:"output"`
-							Calls   []struct {
-								From    string `json:"from"`
-								Gas     string `json:"gas"`
-								GasUsed string `json:"gasUsed"`
-								To      string `json:"to"`
-								Input   string `json:"input"`
-								Output  string `json:"output"`
-								Value   string `json:"value"`
-								Type    string `json:"type"`
-							} `json:"calls"`
-							Value string `json:"value"`
-							Type  string `json:"type"`
-						} `json:"calls,omitempty"`
-					} `json:"calls,omitempty"`
-				} `json:"calls"`
-				Value string `json:"value"`
-				Type  string `json:"type"`
-			} `json:"calls"`
-			Value string `json:"value"`
-			Type  string `json:"type"`
-		} `json:"calls"`
-		Value string `json:"value"`
-		Type  string `json:"type"`
+		From         string      `json:"from"`
+		Gas          string      `json:"gas"`
+		GasUsed      string      `json:"gasUsed"`
+		To           string      `json:"to"`
+		Input        string      `json:"input"`
+		Output       string      `json:"output"`
+		Error        string      `json:"error"`
+		RevertReason string      `json:"revertReason"`
+		Calls        interface{} `json:"calls"`
+		Value        string      `json:"value"`
+		Type         string      `json:"type"`
 	} `json:"result"`
 }
 
@@ -171,9 +110,11 @@ func TestDebugTraceCall(t *testing.T) {
 	tmp, _ := json.Marshal(result)
 	var resTraceCall TraceCallResTest
 	err = json.Unmarshal(tmp, &resTraceCall)
-	if err != nil {
+	if err == nil {
+		fmt.Println("11111")
 		fmt.Println(resTraceCall)
 	} else {
+		fmt.Println("22222")
 		fmt.Println(err)
 	}
 }
