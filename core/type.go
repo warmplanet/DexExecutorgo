@@ -66,10 +66,10 @@ type HeadRsp struct {
 			ReceiptsRoot          string      `json:"receiptsRoot"`
 			LogsBloom             string      `json:"logsBloom"`
 			Difficulty            string      `json:"difficulty"`
-			Number                string      `json:"number"`
+			Number                int64       `json:"number"`
 			GasLimit              string      `json:"gasLimit"`
 			GasUsed               string      `json:"gasUsed"`
-			Timestamp             string      `json:"timestamp"`
+			Timestamp             int64       `json:"timestamp"`
 			ExtraData             string      `json:"extraData"`
 			MixHash               string      `json:"mixHash"`
 			Nonce                 string      `json:"nonce"`
@@ -105,7 +105,7 @@ type Signal struct {
 		Nonce    int    `json:"nonce"`
 		From     string `json:"from"`
 		To       string `json:"to"`
-		Value    int    `json:"value"`
+		Value    string `json:"value"`
 		Gas      int    `json:"gas"`
 		GasPrice int    `json:"gasPrice"`
 		Data     string `json:"data"`
@@ -116,10 +116,10 @@ type Signal struct {
 	SignalBlockTime float64 `json:"signal_blocktime"`
 	MaxGasPrice     float64 `json:"max_gas_price"`
 	BaseGasPrice    float64 `json:"base_gas_price"`
-	TradeBlockNum   int     `json:"trade_blocknum"`
+	TradeBlockNum   int64   `json:"trade_blocknum"`
 	RegistId        int64   `json:"regist_id"`
 	HedgeId         int64   `json:"hedge_id"`
-	DepthDetails1   map[string][]struct {
+	DepthDetails    map[string][]struct {
 		Exchange      int          `json:"exchange"`
 		PriceAvg      float64      `json:"price_avg"`
 		AmountSum     float64      `json:"amount_sum"`
@@ -165,15 +165,15 @@ type Tracer struct {
 }
 
 type CallsRes struct {
-	From    string    `json:"from"`
-	Gas     string    `json:"gas"`
-	GasUsed string    `json:"gasUsed"`
-	To      string    `json:"to"`
-	Input   string    `json:"input"`
-	Output  string    `json:"output"`
-	Value   string    `json:"value,omitempty"`
-	Type    string    `json:"type"`
-	Call    *CallsRes `json:"calls,omitempty"`
+	From    string     `json:"from"`
+	Gas     string     `json:"gas"`
+	GasUsed string     `json:"gasUsed"`
+	To      string     `json:"to"`
+	Input   string     `json:"input"`
+	Output  string     `json:"output"`
+	Value   string     `json:"value,omitempty"`
+	Type    string     `json:"type"`
+	Call    []CallsRes `json:"calls,omitempty"`
 }
 
 type TraceCallRes struct {

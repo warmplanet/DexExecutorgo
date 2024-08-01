@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/warmplanet/proto/go/common"
 	"github.com/warmplanet/proto/go/order"
 	"github.com/warmplanet/proto/go/ordertool_wap"
 	"github.com/warmplanet/proto/go/sdk"
 	"github.com/warmplanet/proto/go/sdk/broker"
 	"strings"
-)
-
-var (
-	NodeMgrMap map[string]*NodeMgr
+	"time"
 )
 
 type NodeMgr struct {
@@ -33,7 +31,7 @@ type NodeMgr struct {
 	cDecoder      *CallClientDecoder
 }
 
-func NewNodeMgr(rpcUrl, wsUrl string, signals []Signal, router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool) *NodeMgr {
+func NewNodeMgr(rpcUrl, wsUrl string, signals []Signal, router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool, pairSymbolMap map[string]string) *NodeMgr {
 	pendingTxChan := make(chan *PendingTx)
 	headerWsMap := make([]HeadRsp, 0)
 	nodeCli, err := NewDexNodeClient(rpcUrl, wsUrl, pendingTxChan, headerWsMap)
@@ -54,7 +52,7 @@ func NewNodeMgr(rpcUrl, wsUrl string, signals []Signal, router map[string]string
 		Publisher:     NewNatsPublisher(),
 		Signals:       signals,
 		rDecoder:      rDecoder,
-		cDecoder:      NewCallClientDecoder(nodeCli.client),
+		cDecoder:      NewCallClientDecoder(nodeCli.client, pairSymbolMap),
 	}
 	return nodeMgr
 }
@@ -110,21 +108,26 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			}
 
 			var symbolList []string
-			fmt.Println(toAddress)
 			if dexName, ok := n.RouterMap[toAddress]; ok {
 				symbolList = n.rDecoder.DecodeToSymbol(dexName, pendingTx)
 			} else if okk, _ := n.EnemiesMap[toAddress]; okk {
-				fmt.Println(toAddress)
-				fmt.Println(pendingTx.Params.Result.Input)
 				symbolList = n.cDecoder.DecodeToSymbol(pendingTx)
 			}
 
-			rebuildOrNot := n.CheckRebuildTxOrNot(symbolList)
-			if rebuildOrNot {
-				n.Trade()
-			}
+			n.CheckRebuildTxOrNot(symbolList)
 		}
 	}
+}
+
+func (n *NodeMgr) GetPendingBlockNum() int64 {
+	lastPendingBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
+	lastPendingBlockTimestamp := lastPendingBlock.Params.Result.Timestamp
+	timeNow := time.Now().UnixMilli()
+	if timeNow-lastPendingBlockTimestamp > 10*60 {
+		return 0
+	}
+	blockNumDiff := (timeNow - lastPendingBlockTimestamp) / 2
+	return lastPendingBlock.Params.Result.Number + blockNumDiff + 1
 }
 
 func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
@@ -132,9 +135,104 @@ func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
 		return false
 	}
 
-	fmt.Println(n.HeaderWsList[len(n.HeaderWsList)-1])
-	fmt.Println(n.Signals[len(n.Signals)-1])
+	calBlockNum := n.GetPendingBlockNum()
+	signal := n.Signals[len(n.Signals)-1]
+	fmt.Println(calBlockNum, signal.TradeBlockNum)
+
+	if calBlockNum > signal.TradeBlockNum {
+		return false
+		//n.Trade(signal)
+	}
 	return false
+}
+
+func (n *NodeMgr) Trade(signal Signal) {
+	var (
+		side         order.TradeSide
+		token, quote string
+	)
+
+	if signal.Side == "buy" {
+		side = order.TradeSide_BUY
+	} else {
+		side = order.TradeSide_SELL
+	}
+
+	tokens := strings.Split(signal.Symbol, "_")
+	token, quote = tokens[0], tokens[1]
+
+	dexInfo := order.DexInfo{
+		Signer: signal.BuildTx.From,
+	}
+	dexInfo.Info = &order.DexInfo_E{
+		E: &order.EthInfo{
+			TxType:               order.EthTransactionType_DynamicFeeTx,
+			GasLimit:             uint64(signal.BuildTx.Gas),
+			Nonce:                uint64(signal.BuildTx.Nonce),
+			Data:                 []byte(signal.BuildTx.Data),
+			MaxPriorityFeePerGas: uint64(signal.BuildTx.GasPrice),
+			MaxFeePerGas:         uint64(signal.BuildTx.GasPrice),
+			Value:                signal.BuildTx.Value,
+		},
+	}
+
+	hedgeExpect := make([]*order.OrderHedge, 0)
+	for subject, depthDetails := range signal.DepthDetails {
+		for _, itemDetail := range depthDetails {
+			for _, item := range itemDetail.Path {
+				symbol := strings.ToLower(strings.Replace(item.Symbol, "/", "_", -1))
+				itemTokens := strings.Split(item.Symbol, "/")
+				itemBase, itemQuote := itemTokens[0], itemTokens[1]
+				amount := itemDetail.ConsumeRatio * itemDetail.AmountSum
+				priceExpect := item.PriceAvg
+				s := signal.SymbolsTradeSide[subject][symbol]
+				var itemSide order.TradeSide
+				if s == "buy" {
+					itemSide = order.TradeSide_BUY
+				} else {
+					itemSide = order.TradeSide_SELL
+				}
+				orderHedge := &order.OrderHedge{
+					Side:          itemSide,
+					PriceExpected: priceExpect,
+					Amount:        amount,
+					ExpiredTimeMs: 15000 + time.Now().UnixMilli(),
+					Exchange:      common.Exchange(item.Exchange),
+					AccountId:     []byte("ptneurm1"),
+					Market:        common.Market(item.Market),
+					Type:          common.SymbolType(item.SymbolType),
+					Token:         []byte(itemBase),
+					Quote:         []byte(itemQuote),
+				}
+				hedgeExpect = append(hedgeExpect, orderHedge)
+			}
+		}
+	}
+
+	ter := ordertool_wap.TradingReqInfoWAP{
+		ProjectId:    "avalanche_v1",
+		ReqNo:        signal.RegistId,
+		Hedge:        signal.HedgeId,
+		TradeType:    order.TradeType_TAKER,
+		TradeSide:    side,
+		PriceExpect:  signal.PriceExpect,
+		Token:        strings.ToUpper(token),
+		Quote:        strings.ToLower(quote),
+		Amount:       signal.AmountArb,
+		ExchangeId:   common.Exchange_AVALANCHE_DEX,
+		ExchangeAddr: signal.BuildTx.To,
+		AccountId:    []byte("avalanche"),
+		Market:       common.Market_SPOT,
+		Type:         order.OrderSysType_TRADE_DEX,
+		Contract:     common.SymbolType_SPOT_NORMAL,
+		Dex:          &dexInfo,
+		HedgeExpect:  hedgeExpect,
+	}
+
+	pubErr := n.Publisher.PublishMsg(DATA_ORDER_TOOL, &ter)
+	if pubErr != nil {
+		utils.Logger.Errorf("publish update gasPrice order error, err=%v", pubErr)
+	}
 }
 
 type Decoder interface {
@@ -216,12 +314,14 @@ func (r *RouterDecoder) DecodeToSymbol(dexName string, pendingTx *PendingTx) (sy
 }
 
 type CallClientDecoder struct {
-	EthClient *ethclient.Client
+	EthClient     *ethclient.Client
+	PairSymbolMap map[string]string
 }
 
-func NewCallClientDecoder(ethClient *ethclient.Client) *CallClientDecoder {
+func NewCallClientDecoder(ethClient *ethclient.Client, pairSymbolMap map[string]string) *CallClientDecoder {
 	c := &CallClientDecoder{
-		EthClient: ethClient,
+		EthClient:     ethClient,
+		PairSymbolMap: pairSymbolMap,
 	}
 	return c
 }
@@ -229,7 +329,7 @@ func NewCallClientDecoder(ethClient *ethclient.Client) *CallClientDecoder {
 func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx) []string {
 	var (
 		addresses []string
-		result    TraceCallRes
+		result    interface{}
 		paramsa   = ParamsA{
 			From: pendingTx.Params.Result.From,
 			To:   pendingTx.Params.Result.To,
@@ -250,40 +350,30 @@ func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx) []string {
 		return addresses
 	}
 
-	fmt.Println(result, err)
-	addresses = append(addresses, result.Result.To)
-	c.GetAllAddress(&result.Result.Calls, addresses)
+	tmp, _ := json.Marshal(result)
+	var resTraceCall CallsRes
+	err = json.Unmarshal(tmp, &resTraceCall)
+	if err == nil {
+		addresses = c.GetAllAddress([]CallsRes{resTraceCall})
+	} else {
+		return addresses
+	}
 
 	var symbolList []string
 	for _, address := range addresses {
-		fmt.Println(address)
-		symbolList = append(symbolList, address)
+		if symbol, ok := c.PairSymbolMap[address]; ok {
+			symbolList = append(symbolList, symbol)
+		}
 	}
 	return symbolList
 }
 
-func (c *CallClientDecoder) GetAllAddress(callRes *CallsRes, addresses []string) {
-	if callRes != nil {
-		addresses = append(addresses, callRes.To)
-		c.GetAllAddress(callRes.Call, addresses)
+func (c *CallClientDecoder) GetAllAddress(callsRes []CallsRes) (addresses []string) {
+	if len(callsRes) != 0 {
+		for _, call := range callsRes {
+			addresses = append(addresses, call.To)
+			addresses = append(addresses, c.GetAllAddress(call.Call)...)
+		}
 	}
-}
-
-func (n *NodeMgr) Trade() {
-	dexInfo := order.DexInfo{}
-	ter := ordertool_wap.TradingReqInfoWAP{
-		//ProjectId:    "",
-		//ExchangeId:   nil,
-		//ExchangeAddr: nil,
-		//AccountId:    "",
-		//ReqNo:        "",
-		//Hedge:        "",
-		//Market:       "",
-		//Token:        "",
-		//Quote:        "",
-		//Amount:       "",
-		Dex: &dexInfo,
-	}
-
-	n.Publisher.PublishMsg(DATA_ORDER_TOOL, &ter)
+	return addresses
 }

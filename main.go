@@ -33,7 +33,14 @@ func main() {
 			enemiesMap[addr] = true
 		}
 
-		nodeMgr := core.NewNodeMgr(v.Endpoint, v.WsEndpoint, signals, newRouter, addrTokens, enemiesMap)
+		pairSymbolMap := make(map[string]string)
+		for s, pair := range config.GlobalConfig.ChainPairs[chainName] {
+			s = strings.Split(s, "@")[1]
+			s = strings.ToLower(s)
+			pairSymbolMap[pair.Contract] = s
+		}
+
+		nodeMgr := core.NewNodeMgr(v.Endpoint, v.WsEndpoint, signals, newRouter, addrTokens, enemiesMap, pairSymbolMap)
 		go nodeMgr.Execute()
 	}
 
