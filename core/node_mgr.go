@@ -66,7 +66,7 @@ func NewNatsPublisher() *broker.Pub {
 
 func (n *NodeMgr) Execute() {
 	n.SubPendingTx()
-	//n.SubBlockHeader()
+	n.SubBlockHeader()
 	n.GasPriceAnalyse()
 }
 
