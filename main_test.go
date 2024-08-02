@@ -2,9 +2,12 @@ package main
 
 import (
 	"DexExecutorgo/core"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"os"
 	"testing"
 )
@@ -104,6 +107,30 @@ func TestDebugTraceCall(t *testing.T) {
 	} else {
 		fmt.Println("22222")
 		fmt.Println(err)
+	}
+}
+
+func TestSubscribeFullPendingTransactions(t *testing.T) {
+	rpcUrl := "http://10.9.1.97:9650/ext/bc/C/rpc"
+	ethClient, err := ethclient.Dial(rpcUrl)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	ec := gethclient.New(ethClient.Client())
+	ch := make(chan *types.Transaction)
+	subscription, err := ec.SubscribeFullPendingTransactions(context.Background(), ch)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(subscription)
+
+	for {
+		select {
+		case tx, ok := <-ch:
+			fmt.Println(tx, ok)
+		}
 	}
 }
 
