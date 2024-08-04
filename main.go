@@ -4,6 +4,7 @@ import (
 	"DexExecutorgo/config"
 	"DexExecutorgo/core"
 	"DexExecutorgo/utils"
+	"context"
 	"github.com/warmplanet/proto/go/sdk/broker"
 	"strings"
 )
@@ -40,7 +41,7 @@ func main() {
 			pairSymbolMap[pair.Contract] = s
 		}
 
-		nodeMgr := core.NewNodeMgr(v.Endpoint, v.WsEndpoint, signals, newRouter, addrTokens, enemiesMap, pairSymbolMap)
+		nodeMgr := core.NewNodeMgr(context.Background(), v.Endpoint, v.WsEndpoint, signals, newRouter, addrTokens, enemiesMap, pairSymbolMap)
 		go nodeMgr.Execute()
 	}
 

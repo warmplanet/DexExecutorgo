@@ -79,9 +79,9 @@ func TestDebugTraceCall(t *testing.T) {
 	var result interface{}
 	var (
 		paramsa = core.ParamsA{
-			From: pendingTx.Params.Result.From,
-			To:   pendingTx.Params.Result.To,
-			Data: pendingTx.Params.Result.Input,
+			From: pendingTx.From,
+			To:   pendingTx.To,
+			Data: pendingTx.Input,
 		}
 
 		paramsb = core.Tracer{
@@ -111,7 +111,8 @@ func TestDebugTraceCall(t *testing.T) {
 }
 
 func TestSubscribeFullPendingTransactions(t *testing.T) {
-	rpcUrl := "http://10.9.1.97:9650/ext/bc/C/rpc"
+	//rpcUrl := "http://10.9.1.97:9650/ext/bc/C/rpc"
+	rpcUrl := "wss://avalanche-c-chain-rpc.publicnode.com"
 	ethClient, err := ethclient.Dial(rpcUrl)
 	if err != nil {
 		fmt.Println(err)
@@ -128,8 +129,32 @@ func TestSubscribeFullPendingTransactions(t *testing.T) {
 
 	for {
 		select {
-		case tx, ok := <-ch:
-			fmt.Println(tx, ok)
+		case tx, _ := <-ch:
+			txByte, _ := tx.MarshalJSON()
+			fmt.Println(string(txByte))
+		}
+	}
+}
+
+func TestSubscribeNewHeads(t *testing.T) {
+	rpcUrl := "wss://avalanche-c-chain-rpc.publicnode.com"
+	ethClient, err := ethclient.Dial(rpcUrl)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ch := make(chan *types.Header)
+	subscription, err := ethClient.SubscribeNewHead(context.Background(), ch)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(subscription)
+
+	for {
+		select {
+		case newHead, _ := <-ch:
+			headByte, _ := newHead.MarshalJSON()
+			fmt.Println(string(headByte))
 		}
 	}
 }

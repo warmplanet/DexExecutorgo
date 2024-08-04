@@ -3,10 +3,12 @@ package core
 import (
 	"DexExecutorgo/config"
 	"DexExecutorgo/utils"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/warmplanet/proto/go/common"
 	"github.com/warmplanet/proto/go/order"
@@ -23,18 +25,17 @@ type NodeMgr struct {
 	NodeClient    *NodeClient
 	RouterMap     map[string]string
 	EnemiesMap    map[string]bool
-	PendingTxChan chan *PendingTx
-	HeaderWsList  []HeadRsp
+	PendingTxChan chan *types.Transaction
+	HeaderWsList  []*types.Header
 	Signals       []Signal
 	Publisher     *broker.Pub
 	rDecoder      *RouterDecoder
 	cDecoder      *CallClientDecoder
 }
 
-func NewNodeMgr(rpcUrl, wsUrl string, signals []Signal, router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool, pairSymbolMap map[string]string) *NodeMgr {
-	pendingTxChan := make(chan *PendingTx)
-	headerWsMap := make([]HeadRsp, 0)
-	nodeCli, err := NewDexNodeClient(rpcUrl, wsUrl, pendingTxChan, headerWsMap)
+func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signals []Signal, router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool, pairSymbolMap map[string]string) *NodeMgr {
+	pendingTxChan := make(chan *types.Transaction)
+	nodeCli, err := NewDexNodeClient(ctx, rpcUrl, wsUrl, pendingTxChan)
 	if err != nil {
 		utils.Logger.Errorf("init dexNode obj failed, err=%v", err)
 	}
@@ -65,53 +66,70 @@ func NewNatsPublisher() *broker.Pub {
 }
 
 func (n *NodeMgr) Execute() {
-	n.SubPendingTx()
-	n.SubBlockHeader()
-	n.GasPriceAnalyse()
+	go n.GasPriceAnalyse()
+
+	go n.SubGethBlockHeader()
+	n.NodeClient.SubscribeFullPendingTransactions()
 }
 
-func (n *NodeMgr) SubPendingTx() {
-	subScribe := wsRequest{
-		Id:      1,
-		JsonRpc: 2.0,
-		Method:  "eth_subscribe",
-		Params:  []string{"newPendingTransactions", "true"},
-	}
-	err := n.NodeClient.EstablishConn(subScribe, n.NodeClient.PendingTxHandler)
-	if err != nil {
-		utils.Logger.Errorf("call pendingTx client error, err=%v", err)
-	}
-}
+func (n *NodeMgr) SubGethBlockHeader() {
+	defer func() {
+		if err := recover(); err != nil {
+			utils.Logger.Errorf("SubGethBlockHeader painc: %v", utils.PanicTrace(err))
+			time.Sleep(time.Second)
+			go n.SubGethBlockHeader()
+		}
+	}()
 
-func (n *NodeMgr) SubBlockHeader() {
-	subScribe := wsRequest{
-		Id:      1,
-		JsonRpc: 2.0,
-		Method:  "eth_subscribe",
-		Params:  []string{"newHeads"},
-	}
-	err := n.NodeClient.EstablishConn(subScribe, n.NodeClient.HeadsHandler)
-	if err != nil {
-		utils.Logger.Errorf("call blockHeader client error, err=%v", err)
+	ch := make(chan *types.Header)
+	n.NodeClient.SubscribeNewHeads(ch)
+	for {
+		select {
+		case <-n.NodeClient.ctx.Done():
+			utils.Logger.Info("get ctx signal, exit to receiveMessage")
+			n.NodeClient.wsClient.Close()
+		case newHead, _ := <-ch:
+			if newHead.Number.Int64() == 0 {
+				continue
+			}
+			if len(n.HeaderWsList) > 200 {
+				n.HeaderWsList = n.HeaderWsList[100:]
+			}
+			n.HeaderWsList = append(n.HeaderWsList, newHead)
+		}
 	}
 }
 
 func (n *NodeMgr) GasPriceAnalyse() {
+	defer func() {
+		if err := recover(); err != nil {
+			utils.Logger.Errorf("GasPriceAnalyse painc: %v", utils.PanicTrace(err))
+			time.Sleep(time.Second)
+			go n.GasPriceAnalyse()
+		}
+	}()
+
 	for {
 		select {
-		case pendingTx, _ := <-n.PendingTxChan:
-			fromAddress := pendingTx.Params.Result.From
-			toAddress := pendingTx.Params.Result.To
-			if fromAddress == toAddress {
-				utils.Logger.Infof("fromAddress is the same as toAddress, fromAddr=%v, toAddr=%v", fromAddress, toAddress)
+		case <-n.NodeClient.ctx.Done():
+			utils.Logger.Info("get ctx signal, exit to receiveMessage")
+			n.NodeClient.wsClient.Close()
+		case tx, _ := <-n.PendingTxChan:
+			var pendingTx PendingTx
+			txByte, _ := tx.MarshalJSON()
+			err := json.Unmarshal(txByte, &pendingTx)
+			if err != nil {
+				utils.Logger.Errorf("json unmarshal pendingTx error, err=%v", err)
 				continue
 			}
-
+			fromAddress, _ := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
+			pendingTx.From = fromAddress.Hex()
+			toAddress := pendingTx.To
 			var symbolList []string
 			if dexName, ok := n.RouterMap[toAddress]; ok {
-				symbolList = n.rDecoder.DecodeToSymbol(dexName, pendingTx)
+				symbolList = n.rDecoder.DecodeToSymbol(dexName, &pendingTx)
 			} else if okk, _ := n.EnemiesMap[toAddress]; okk {
-				symbolList = n.cDecoder.DecodeToSymbol(pendingTx)
+				symbolList = n.cDecoder.DecodeToSymbol(&pendingTx)
 			}
 
 			n.CheckRebuildTxOrNot(symbolList)
@@ -121,13 +139,13 @@ func (n *NodeMgr) GasPriceAnalyse() {
 
 func (n *NodeMgr) GetPendingBlockNum() int64 {
 	lastPendingBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
-	lastPendingBlockTimestamp := lastPendingBlock.Params.Result.Timestamp
+	lastPendingBlockTimestamp := int64(lastPendingBlock.Time)
 	timeNow := time.Now().UnixMilli()
 	if timeNow-lastPendingBlockTimestamp > 10*60 {
 		return 0
 	}
 	blockNumDiff := (timeNow - lastPendingBlockTimestamp) / 2
-	return lastPendingBlock.Params.Result.Number + blockNumDiff + 1
+	return lastPendingBlock.Number.Int64() + blockNumDiff + 1
 }
 
 func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
@@ -260,7 +278,7 @@ func NewRouterDecoder(addrTokens map[string]string) (*RouterDecoder, error) {
 }
 
 func (r *RouterDecoder) DecodeToSymbol(dexName string, pendingTx *PendingTx) (symbolList []string) {
-	txInput := pendingTx.Params.Result.Input
+	txInput := pendingTx.Input
 	funcSig, err := hex.DecodeString(txInput[2:10])
 	if err != nil {
 		utils.Logger.Errorf("decode function signature failed, funcsig=%v, err=%v", funcSig, err)
@@ -331,9 +349,9 @@ func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx) []string {
 		addresses []string
 		result    interface{}
 		paramsa   = ParamsA{
-			From: pendingTx.Params.Result.From,
-			To:   pendingTx.Params.Result.To,
-			Data: pendingTx.Params.Result.Input,
+			From: pendingTx.From,
+			To:   pendingTx.To,
+			Data: pendingTx.Input,
 		}
 
 		paramsb = Tracer{

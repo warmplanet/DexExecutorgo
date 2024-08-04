@@ -13,37 +13,23 @@ type wsRequest struct {
 }
 
 type PendingTx struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  struct {
-		Subscription string `json:"subscription"`
-		Error        struct {
-			Code    int    `json:"code"`
-			Message string `json:"message"`
-		} `json:"error"`
-		Result struct {
-			BlockHash            string        `json:"blockHash"`
-			BlockNumber          string        `json:"blockNumber"`
-			From                 string        `json:"from"`
-			Gas                  string        `json:"gas"`
-			GasPrice             string        `json:"gasPrice"`
-			MaxFeePerGas         string        `json:"maxFeePerGas"`
-			MaxPriorityFeePerGas string        `json:"maxPriorityFeePerGas"`
-			Hash                 string        `json:"hash"`
-			Input                string        `json:"input"`
-			Nonce                string        `json:"nonce"`
-			To                   string        `json:"to"`
-			TransactionIndex     string        `json:"transactionIndex"`
-			Value                string        `json:"value"`
-			Type                 string        `json:"type"`
-			AccessList           []interface{} `json:"accessList"`
-			ChainId              string        `json:"chainId"`
-			V                    string        `json:"v"`
-			R                    string        `json:"r"`
-			S                    string        `json:"s"`
-			YParity              string        `json:"yParity"`
-		} `json:"result"`
-	} `json:"params"`
+	Type                 string        `json:"type"`
+	ChainId              string        `json:"chainId"`
+	Nonce                string        `json:"nonce"`
+	From                 string        `json:"from"`
+	To                   string        `json:"to"`
+	Gas                  string        `json:"gas"`
+	GasPrice             interface{}   `json:"gasPrice"`
+	MaxPriorityFeePerGas string        `json:"maxPriorityFeePerGas"`
+	MaxFeePerGas         string        `json:"maxFeePerGas"`
+	Value                string        `json:"value"`
+	Input                string        `json:"input"`
+	AccessList           []interface{} `json:"accessList"`
+	V                    string        `json:"v"`
+	R                    string        `json:"r"`
+	S                    string        `json:"s"`
+	YParity              string        `json:"yParity"`
+	Hash                 string        `json:"hash"`
 }
 
 type TraderJoePath struct {

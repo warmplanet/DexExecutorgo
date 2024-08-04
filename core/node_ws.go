@@ -5,35 +5,34 @@ import (
 	"DexExecutorgo/utils"
 	"encoding/json"
 	"errors"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"strings"
 	"time"
 )
 
-type NodeClient struct {
-	RpcUrl             string
-	client             *ethclient.Client
-	WsUrl              string
-	UniswapV3RouterAbi abi.ABI
-	TraderjoeRouterAbi abi.ABI
-	PendingTxChan      chan *PendingTx
-	HeaderWsList       []HeadRsp
+func (n *NodeMgr) SubPendingTx() {
+	subScribe := wsRequest{
+		Id:      1,
+		JsonRpc: 2.0,
+		Method:  "eth_subscribe",
+		Params:  []string{"newPendingTransactions", "true"},
+	}
+	err := n.NodeClient.EstablishConn(subScribe, n.NodeClient.PendingTxHandler)
+	if err != nil {
+		utils.Logger.Errorf("call pendingTx client error, err=%v", err)
+	}
 }
 
-func NewDexNodeClient(rpcUrl, wsUrl string, pendingTxChan chan *PendingTx, headerWsList []HeadRsp) (*NodeClient, error) {
-	var err error
-	nodeCli := &NodeClient{
-		RpcUrl:        rpcUrl,
-		WsUrl:         wsUrl,
-		PendingTxChan: pendingTxChan,
-		HeaderWsList:  headerWsList,
+func (n *NodeMgr) SubBlockHeader() {
+	subScribe := wsRequest{
+		Id:      2,
+		JsonRpc: 2.0,
+		Method:  "eth_subscribe",
+		Params:  []string{"newHeads"},
 	}
-
-	if nodeCli.client, err = ethclient.Dial(nodeCli.RpcUrl); err != nil {
-		return nil, err
+	err := n.NodeClient.EstablishConn(subScribe, n.NodeClient.HeadsHandler)
+	if err != nil {
+		utils.Logger.Errorf("call blockHeader client error, err=%v", err)
 	}
-	return nodeCli, nil
 }
 
 func (n *NodeClient) EstablishConn(subScribe wsRequest, handler func([]byte) error) error {
@@ -100,14 +99,14 @@ func (n *NodeClient) PendingTxHandler(data []byte) error {
 		utils.Logger.Errorf("json unmarshal data err: %v, data: %v", err, string(data))
 		return errors.New("json unmarshal data err: " + err.Error())
 	}
-	if pendingTx.Method == "" {
-		return nil
-	}
-	if pendingTx.Params.Error.Message != "" {
-		utils.Logger.Errorf("subscribe node error, err: %v, data: %v", pendingTx.Params.Error.Message, string(data))
-		return errors.New("subscribe node error, err: " + pendingTx.Params.Error.Message)
-	}
+	//if pendingTx.Method == "" {
+	//	return nil
+	//}
+	//if pendingTx.Params.Error.Message != "" {
+	//	utils.Logger.Errorf("subscribe node error, err: %v, data: %v", pendingTx.Params.Error.Message, string(data))
+	//	return errors.New("subscribe node error, err: " + pendingTx.Params.Error.Message)
+	//}
 
-	n.PendingTxChan <- &pendingTx
+	//n.PendingTxChan <- &pendingTx
 	return nil
 }
