@@ -38,7 +38,8 @@ func main() {
 		for s, pair := range config.GlobalConfig.ChainPairs[chainName] {
 			s = strings.Split(s, "@")[1]
 			s = strings.ToLower(s)
-			pairSymbolMap[pair.Contract] = s
+			pairAddrLower := strings.ToLower(pair.Contract)
+			pairSymbolMap[pairAddrLower] = s
 		}
 
 		nodeMgr := core.NewNodeMgr(context.Background(), v.Endpoint, v.WsEndpoint, signals, newRouter, addrTokens, enemiesMap, pairSymbolMap)
