@@ -113,7 +113,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 		}
 	}()
 
-	tmpMap := make(map[string]PendingTx)
+	//tmpMap := make(map[string]PendingTx)
 	for {
 		select {
 		case <-n.NodeClient.ctx.Done():
@@ -138,8 +138,9 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			}
 
 			if len(symbolList) != 0 {
-				key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
-				tmpMap[key] = pendingTx
+				//key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
+				//tmpMap[key] = pendingTx
+				fmt.Println(tx.Hash(), n.GetPendingBlockNum())
 				if len(n.Signals) != 0 {
 					n.CheckRebuildTxOrNot(symbolList)
 				}
@@ -147,25 +148,10 @@ func (n *NodeMgr) GasPriceAnalyse() {
 
 		case signal, _ := <-n.SignalChan:
 			tradeBlockNum := signal.TradeBlockNum
-			key1 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum)
-			key2 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum-1)
-			key3 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum+1)
-			key4 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum+2)
-			fmt.Println(time.Now().UnixMilli(), n.HeaderWsList[len(n.HeaderWsList)-1].Time)
-			fmt.Println(key1, key2, key3, key4)
-			fmt.Println(tmpMap)
-			if pendingTx, ok1 := tmpMap[key1]; ok1 {
-				fmt.Println(tradeBlockNum, key1, pendingTx.GasPrice)
-			}
-			if pendingTx, ok1 := tmpMap[key2]; ok1 {
-				fmt.Println(tradeBlockNum, key2, pendingTx.GasPrice)
-			}
-			if pendingTx, ok1 := tmpMap[key3]; ok1 {
-				fmt.Println(tradeBlockNum, key3, pendingTx.GasPrice)
-			}
-			if pendingTx, ok1 := tmpMap[key4]; ok1 {
-				fmt.Println(tradeBlockNum, key4, pendingTx.GasPrice)
-			}
+			fmt.Println(tradeBlockNum)
+			//if pendingTx, ok1 := tmpMap[key1]; ok1 {
+			//	fmt.Println(tradeBlockNum, key1, pendingTx.GasPrice)
+			//}
 		}
 	}
 }
