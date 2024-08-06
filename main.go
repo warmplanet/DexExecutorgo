@@ -38,6 +38,7 @@ func main() {
 		pairSymbolMap := make(map[string]string)
 		for s, pair := range config.GlobalConfig.ChainPairs[chainName] {
 			s = strings.Split(s, "@")[1]
+			s = strings.Replace(s, "/", "_", 1)
 			s = strings.ToLower(s)
 			pairAddrLower := strings.ToLower(pair.Contract)
 			pairSymbolMap[pairAddrLower] = s
