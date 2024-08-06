@@ -158,7 +158,7 @@ func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
 
 	// 时间校验待添加
 	if signal.TradeBlockNum == calBlockNum {
-		fmt.Println(calBlockNum, signal.TradeBlockNum)
+		fmt.Println(symbolList, calBlockNum, signal)
 		fmt.Println(signal.SignalBlockTime, time.Now().Second())
 		//n.Trade(signal)
 	}
