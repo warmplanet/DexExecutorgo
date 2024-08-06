@@ -15,6 +15,7 @@ import (
 	"github.com/warmplanet/proto/go/ordertool_wap"
 	"github.com/warmplanet/proto/go/sdk"
 	"github.com/warmplanet/proto/go/sdk/broker"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -140,27 +141,28 @@ func (n *NodeMgr) GasPriceAnalyse() {
 func (n *NodeMgr) GetPendingBlockNum() int64 {
 	lastPendingBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
 	lastPendingBlockTimestamp := int64(lastPendingBlock.Time)
-	timeNow := time.Now().UnixMilli()
-	if timeNow-lastPendingBlockTimestamp > 10*60 {
+	timeNow := int64(time.Now().Second())
+	if timeNow-lastPendingBlockTimestamp > 2 {
 		return 0
 	}
-	blockNumDiff := (timeNow - lastPendingBlockTimestamp) / 2
-	return lastPendingBlock.Number.Int64() + blockNumDiff + 1
+	return lastPendingBlock.Number.Int64() + 1
 }
 
 func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
-	if len(symbolList) == 0 {
+	if len(symbolList) == 0 || len(n.Signals) == 0 {
 		return false
 	}
 
 	calBlockNum := n.GetPendingBlockNum()
 	signal := n.Signals[len(n.Signals)-1]
-	fmt.Println(calBlockNum, signal.TradeBlockNum)
 
-	if calBlockNum > signal.TradeBlockNum {
-		return false
+	// 时间校验待添加
+	if signal.TradeBlockNum == calBlockNum {
+		fmt.Println(calBlockNum, signal.TradeBlockNum)
+		fmt.Println(signal.SignalBlockTime, time.Now().Second())
 		//n.Trade(signal)
 	}
+
 	return false
 }
 
@@ -190,7 +192,7 @@ func (n *NodeMgr) Trade(signal Signal) {
 			Data:                 []byte(signal.BuildTx.Data),
 			MaxPriorityFeePerGas: uint64(signal.BuildTx.GasPrice),
 			MaxFeePerGas:         uint64(signal.BuildTx.GasPrice),
-			Value:                signal.BuildTx.Value,
+			Value:                strconv.Itoa(signal.BuildTx.Value),
 		},
 	}
 

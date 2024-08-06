@@ -57,5 +57,5 @@ func (n *NodeClient) SubscribeNewHeads(ch chan *types.Header) {
 		n.SubscribeNewHeads(ch)
 	}
 
-	utils.Logger.Infof("SubscribeFullPendingTransactions success, %v", subscription)
+	utils.Logger.Infof("SubscribeNewHeads success, %v", subscription)
 }

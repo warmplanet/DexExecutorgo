@@ -88,14 +88,16 @@ type Signal struct {
 	DexMarket string `json:"dex_market"`
 	Symbol    string `json:"symbol"`
 	BuildTx   struct {
-		Nonce    int    `json:"nonce"`
-		From     string `json:"from"`
-		To       string `json:"to"`
-		Value    string `json:"value"`
-		Gas      int    `json:"gas"`
-		GasPrice int    `json:"gasPrice"`
-		Data     string `json:"data"`
-		ChainId  int    `json:"chainId"`
+		Nonce                int    `json:"nonce"`
+		From                 string `json:"from"`
+		To                   string `json:"to"`
+		Value                int    `json:"value"`
+		Gas                  int    `json:"gas"`
+		GasPrice             int64  `json:"gasPrice"`
+		MaxPriorityFeePerGas int64  `json:"maxPriorityFeePerGas"`
+		MaxFeePerGas         int64  `json:"maxFeePerGas"`
+		Data                 string `json:"data"`
+		ChainId              int    `json:"chainId"`
 	} `json:"build_tx"`
 	UpdateTime      float64 `json:"updatetime"`
 	SignalBlockNum  int     `json:"signal_blocknum"`
