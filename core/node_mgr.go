@@ -151,6 +151,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			key2 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum-1)
 			key3 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum+1)
 			key4 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum+2)
+			fmt.Println(time.Now().UnixMilli(), n.HeaderWsList[len(n.HeaderWsList)-1].Time)
 			fmt.Println(key1, key2, key3, key4)
 			fmt.Println(tmpMap)
 			if pendingTx, ok1 := tmpMap[key1]; ok1 {
