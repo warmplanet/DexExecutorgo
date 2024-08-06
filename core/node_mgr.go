@@ -29,12 +29,14 @@ type NodeMgr struct {
 	PendingTxChan chan *types.Transaction
 	HeaderWsList  []*types.Header
 	Signals       []Signal
+	SignalChan    chan Signal
 	Publisher     *broker.Pub
 	rDecoder      *RouterDecoder
 	cDecoder      *CallClientDecoder
 }
 
-func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signals []Signal, router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool, pairSymbolMap map[string]string) *NodeMgr {
+func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signals []Signal, signalChan chan Signal,
+	router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool, pairSymbolMap map[string]string) *NodeMgr {
 	pendingTxChan := make(chan *types.Transaction)
 	nodeCli, err := NewDexNodeClient(ctx, rpcUrl, wsUrl, pendingTxChan)
 	if err != nil {
@@ -53,6 +55,7 @@ func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signals []Signal, rou
 		PendingTxChan: pendingTxChan,
 		Publisher:     NewNatsPublisher(),
 		Signals:       signals,
+		SignalChan:    signalChan,
 		rDecoder:      rDecoder,
 		cDecoder:      NewCallClientDecoder(nodeCli.client, pairSymbolMap),
 	}
@@ -110,6 +113,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 		}
 	}()
 
+	tmpMap := make(map[string]PendingTx)
 	for {
 		select {
 		case <-n.NodeClient.ctx.Done():
@@ -133,8 +137,32 @@ func (n *NodeMgr) GasPriceAnalyse() {
 				symbolList = n.cDecoder.DecodeToSymbol(&pendingTx)
 			}
 
-			fmt.Println(symbolList)
-			n.CheckRebuildTxOrNot(symbolList)
+			if len(symbolList) != 0 {
+				key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
+				tmpMap[key] = pendingTx
+				if len(n.Signals) != 0 {
+					n.CheckRebuildTxOrNot(symbolList)
+				}
+			}
+
+		case signal, _ := <-n.SignalChan:
+			tradeBlockNum := signal.TradeBlockNum
+			key1 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum)
+			key2 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum-1)
+			key3 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum+1)
+			key4 := fmt.Sprintf("%v_%v", signal.Symbol, tradeBlockNum+2)
+			if pendingTx, ok1 := tmpMap[key1]; ok1 {
+				fmt.Println(tradeBlockNum, key1, pendingTx.GasPrice)
+			}
+			if pendingTx, ok1 := tmpMap[key2]; ok1 {
+				fmt.Println(tradeBlockNum, key2, pendingTx.GasPrice)
+			}
+			if pendingTx, ok1 := tmpMap[key3]; ok1 {
+				fmt.Println(tradeBlockNum, key3, pendingTx.GasPrice)
+			}
+			if pendingTx, ok1 := tmpMap[key4]; ok1 {
+				fmt.Println(tradeBlockNum, key4, pendingTx.GasPrice)
+			}
 		}
 	}
 }
@@ -150,10 +178,6 @@ func (n *NodeMgr) GetPendingBlockNum() int64 {
 }
 
 func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
-	if len(symbolList) == 0 || len(n.Signals) == 0 {
-		return false
-	}
-
 	calBlockNum := n.GetPendingBlockNum()
 	signal := n.Signals[len(n.Signals)-1]
 

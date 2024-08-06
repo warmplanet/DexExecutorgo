@@ -19,6 +19,7 @@ func main() {
 		go core.StartNatsSubscribe(signalKey, broker.SubHandlers{Data: core.SignalMsgHandler})
 
 		signals := core.ReceiveSignalsMap[k]
+		signalChan := core.ReceiveSignalChan[k]
 		newRouter := make(map[string]string)
 		for kk, vv := range v.Router {
 			newRouter[vv] = kk
@@ -42,7 +43,7 @@ func main() {
 			pairSymbolMap[pairAddrLower] = s
 		}
 
-		nodeMgr := core.NewNodeMgr(context.Background(), v.Endpoint, v.WsEndpoint, signals, newRouter, addrTokens, enemiesMap, pairSymbolMap)
+		nodeMgr := core.NewNodeMgr(context.Background(), v.Endpoint, v.WsEndpoint, signals, signalChan, newRouter, addrTokens, enemiesMap, pairSymbolMap)
 		go nodeMgr.Execute()
 	}
 

@@ -10,12 +10,15 @@ import (
 
 var (
 	ReceiveSignalsMap map[string][]Signal
+	ReceiveSignalChan map[string]chan Signal
 )
 
 func init() {
 	ReceiveSignalsMap = make(map[string][]Signal)
+	ReceiveSignalChan = make(map[string]chan Signal)
 	for k := range config.GlobalConfig.ChainConfig {
 		ReceiveSignalsMap[k] = []Signal{}
+		ReceiveSignalChan[k] = make(chan Signal)
 	}
 }
 
@@ -33,6 +36,10 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 	if !exist {
 		return nil
 	}
+	signalChan, exist := ReceiveSignalChan[key]
+	if !exist {
+		return nil
+	}
 
 	var signal Signal
 	err := json.Unmarshal(data, &signal)
@@ -46,5 +53,6 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 	}
 	signals = append(signals, signal)
 
+	signalChan <- signal
 	return nil
 }
