@@ -159,6 +159,22 @@ func TestSubscribeNewHeads(t *testing.T) {
 	}
 }
 
+func TestJsonUnmarshalSignal(t *testing.T) {
+	content, err := os.ReadFile("./test.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var (
+		signal core.Signal
+	)
+	err = json.Unmarshal(content, &signal)
+	if err != nil {
+		return
+	}
+	fmt.Println(signal)
+}
+
 func GetAllAddress(callsRes []TraceCallResTestB) (addresses []string) {
 	if len(callsRes) != 0 {
 		for _, call := range callsRes {
