@@ -6,7 +6,7 @@ is_test = false
 #proxy = "http://127.0.0.1:7890"
 
 [nats]
-servers = ["nats://127.0.0.1:4244"]
+servers = ["nats://127.0.0.1:4344"]
 connection_name = "avalanche"
 nkeys_seed = "" # 用于nats认证的nkey token
 connect_timeout = "200s" # 最大连接超时时间
