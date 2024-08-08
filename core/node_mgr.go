@@ -17,6 +17,7 @@ import (
 	"github.com/warmplanet/proto/go/sdk/broker"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -115,7 +116,6 @@ func (n *NodeMgr) GasPriceAnalyse() {
 		}
 	}()
 
-	tmpMap := make(map[string]int)
 	for {
 		select {
 		case <-n.NodeClient.ctx.Done():
@@ -136,15 +136,25 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			if dexName, ok := n.RouterMap[toAddress]; ok {
 				symbolList = n.rDecoder.DecodeToSymbol(dexName, &pendingTx)
 			} else if okk, _ := n.EnemiesMap[toAddress]; okk {
-				symbolList = n.cDecoder.DecodeToSymbol(&pendingTx)
+				var sg sync.WaitGroup
+				sg.Add(2)
+				go func() {
+					symbolList = n.cDecoder.DecodeToSymbol(&pendingTx)
+				}()
+				go func() {
+					receipt, err := n.NodeClient.client.TransactionReceipt(n.NodeClient.ctx, tx.Hash())
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
+					fmt.Println(receipt.BlockNumber.Int64(), latestBlock.Number.Int64())
+				}()
+				sg.Wait()
+
 			}
 
 			if len(symbolList) != 0 {
-				if count, ok := tmpMap[tx.Hash().Hex()]; ok {
-					tmpMap[tx.Hash().Hex()] = count + 1
-				} else {
-					tmpMap[tx.Hash().Hex()] = 1
-				}
 				//key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
 				//tmpMap[key] = pendingTx
 				//latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
@@ -153,20 +163,6 @@ func (n *NodeMgr) GasPriceAnalyse() {
 				if len(n.Signals) != 0 {
 					n.CheckRebuildTxOrNot(symbolList)
 				}
-
-				var (
-					can    = 0
-					cannot = 1
-				)
-
-				for _, v := range tmpMap {
-					if v == 2 {
-						can += 1
-					} else {
-						cannot += 1
-					}
-				}
-				fmt.Println("dmz_test", toAddress, can, cannot)
 			}
 		case signal, _ := <-n.SignalChan:
 			_ = signal.TradeBlockNum
