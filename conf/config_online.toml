@@ -20,7 +20,8 @@ max_pings_outstanding = 20 # 最大未回应ping数量
 
 [enemies]
 avalanche = [
-    "0x802b65b5d9016621e66003aed0b16615093f328b"
+    "0x802b65b5d9016621e66003aed0b16615093f328b",
+    "0xC22695049B011e314713D9798841A98971920F4c"
 ]
 
 

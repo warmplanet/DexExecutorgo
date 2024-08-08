@@ -32,7 +32,8 @@ func main() {
 
 		enemiesMap := make(map[string]bool)
 		for _, addr := range config.GlobalConfig.ChainEnemies[chainName] {
-			enemiesMap[addr] = true
+			addrLower := strings.ToLower(addr)
+			enemiesMap[addrLower] = true
 		}
 
 		pairSymbolMap := make(map[string]string)

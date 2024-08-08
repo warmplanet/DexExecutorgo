@@ -49,7 +49,9 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 	}
 
 	if len(signals) > 200 {
+		startSignal, endSignal := signals[0], signals[100]
 		signals = signals[100:]
+		utils.Logger.Infof("delete signal in signalList, startTime: %v, endTime: %v", startSignal.UpdateTime, endSignal.UpdateTime)
 	}
 	signals = append(signals, signal)
 

@@ -97,7 +97,9 @@ func (n *NodeMgr) SubGethBlockHeader() {
 				continue
 			}
 			if len(n.HeaderWsList) > 200 {
+				startBlockHeader, endBlockHeader := n.HeaderWsList[0], n.HeaderWsList[100]
 				n.HeaderWsList = n.HeaderWsList[100:]
+				utils.Logger.Infof("delete blockHeader in HeaderWsList, startTime: %v, endTime: %v", startBlockHeader.Time, endBlockHeader.Time)
 			}
 			n.HeaderWsList = append(n.HeaderWsList, newHead)
 		}
@@ -140,15 +142,17 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			if len(symbolList) != 0 {
 				//key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
 				//tmpMap[key] = pendingTx
-				fmt.Println(tx.Hash(), n.GetPendingBlockNum())
+				latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
+				fmt.Println("dmz_test", toAddress, tx.Hash(), time.Now().Sub(tx.Time()), tx.Time().Unix()-int64(latestBlock.Time), latestBlock.Time, latestBlock.Number, n.GetPendingBlockNum())
+				//n.TransferTest()
 				if len(n.Signals) != 0 {
 					n.CheckRebuildTxOrNot(symbolList)
 				}
 			}
 
 		case signal, _ := <-n.SignalChan:
-			tradeBlockNum := signal.TradeBlockNum
-			fmt.Println(tradeBlockNum)
+			_ = signal.TradeBlockNum
+			//fmt.Println(tradeBlockNum)
 			//if pendingTx, ok1 := tmpMap[key1]; ok1 {
 			//	fmt.Println(tradeBlockNum, key1, pendingTx.GasPrice)
 			//}
