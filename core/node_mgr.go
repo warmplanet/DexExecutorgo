@@ -153,21 +153,21 @@ func (n *NodeMgr) GasPriceAnalyse() {
 				if len(n.Signals) != 0 {
 					n.CheckRebuildTxOrNot(symbolList)
 				}
-			}
 
-			var (
-				can    = 0
-				cannot = 1
-			)
+				var (
+					can    = 0
+					cannot = 1
+				)
 
-			for _, v := range tmpMap {
-				if v == 2 {
-					can += 1
-				} else {
-					cannot += 1
+				for _, v := range tmpMap {
+					if v == 2 {
+						can += 1
+					} else {
+						cannot += 1
+					}
 				}
+				fmt.Println("dmz_test", toAddress, can, cannot)
 			}
-			fmt.Println("dmz_test", toAddress, can, cannot)
 		case signal, _ := <-n.SignalChan:
 			_ = signal.TradeBlockNum
 			//fmt.Println(tradeBlockNum)
