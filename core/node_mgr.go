@@ -115,7 +115,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 		}
 	}()
 
-	//tmpMap := make(map[string]PendingTx)
+	tmpMap := make(map[string]int)
 	for {
 		select {
 		case <-n.NodeClient.ctx.Done():
@@ -140,16 +140,34 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			}
 
 			if len(symbolList) != 0 {
+				if count, ok := tmpMap[tx.Hash().Hex()]; ok {
+					tmpMap[tx.Hash().Hex()] = count + 1
+				} else {
+					tmpMap[tx.Hash().Hex()] = 1
+				}
 				//key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
 				//tmpMap[key] = pendingTx
-				latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
-				fmt.Println("dmz_test", toAddress, tx.Hash(), time.Now().Sub(tx.Time()), tx.Time().Unix()-int64(latestBlock.Time), latestBlock.Time, latestBlock.Number, n.GetPendingBlockNum())
+				//latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
+				//fmt.Println("dmz_test", toAddress, tx.Hash(), time.Now().Sub(tx.Time()), tx.Time().Unix()-int64(latestBlock.Time), latestBlock.Time, latestBlock.Number, n.GetPendingBlockNum())
 				//n.TransferTest()
 				if len(n.Signals) != 0 {
 					n.CheckRebuildTxOrNot(symbolList)
 				}
 			}
 
+			var (
+				can    = 0
+				cannot = 1
+			)
+
+			for _, v := range tmpMap {
+				if v == 2 {
+					can += 1
+				} else {
+					cannot += 1
+				}
+			}
+			fmt.Println("dmz_test", toAddress, can, cannot)
 		case signal, _ := <-n.SignalChan:
 			_ = signal.TradeBlockNum
 			//fmt.Println(tradeBlockNum)
