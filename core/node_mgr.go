@@ -30,6 +30,7 @@ type NodeMgr struct {
 	NodeClient    *NodeClient
 	RouterMap     map[string]string
 	EnemiesMap    map[string]bool
+	PendingTxList []*types.Transaction
 	PendingTxChan chan *types.Transaction
 	HeaderWsList  []*types.Header
 	Signals       []Signal
@@ -143,6 +144,11 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			if dexName, ok := n.RouterMap[toAddress]; ok {
 				symbolList = n.rDecoder.DecodeToSymbol(dexName, &pendingTx)
 			} else if okk, _ := n.EnemiesMap[toAddress]; okk {
+				if len(n.PendingTxList) > 200 {
+					n.PendingTxList = n.PendingTxList[100:]
+				}
+				n.PendingTxList = append(n.PendingTxList, tx)
+
 				latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
 				symbolList, alreadyOnChain = n.cDecoder.DecodeToSymbol(&pendingTx, latestBlock)
 			}
@@ -156,11 +162,8 @@ func (n *NodeMgr) GasPriceAnalyse() {
 				}
 			}
 		case signal, _ := <-n.SignalChan:
-			_ = signal.TradeBlockNum
-			//fmt.Println(tradeBlockNum)
-			//if pendingTx, ok1 := tmpMap[key1]; ok1 {
-			//	fmt.Println(tradeBlockNum, key1, pendingTx.GasPrice)
-			//}
+			lastPendingTx := n.PendingTxList[len(n.PendingTxList)-1]
+			utils.Logger.Infof("收到signal最近的一条tx hash=%v, tx block=%v, signalTradeBlockNum", lastPendingTx.Hash(), n.GetPendingBlockNum(), signal.TradeBlockNum)
 		}
 	}
 }
@@ -450,7 +453,7 @@ func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx, latestBlock *ty
 				symbolList = append(symbolList, symbol)
 			}
 		}
-		utils.Logger.Infof("看到竞争对手pending，解析symbol=%v", symbolList)
+		utils.Logger.Infof("看到竞争对手pending，解析symbol=%v, hash=%v", symbolList, pendingTx.Hash)
 	}
 	return symbolList, alreadyOnChain
 }
