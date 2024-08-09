@@ -204,7 +204,7 @@ func (n *NodeMgr) RebuildTx(symbolList []string, txGasPrice *big.Int) bool {
 	utils.Logger.Infof("竞争对手触发，获取最近signal, signal=%v", curSignal)
 
 	// 区块校验
-	if curSignal.TradeBlockNum == n.GetPendingBlockNum() {
+	if curSignal.TradeBlockNum >= n.GetPendingBlockNum() {
 		newGasPrice := big.NewInt(1)
 		newGasPrice.Add(newGasPrice, txGasPrice)
 		baseGasPrice := big.NewInt(int64(curSignal.BaseGasPrice * math.Pow(10, 9)))
