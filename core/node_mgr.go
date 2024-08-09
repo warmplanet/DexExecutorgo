@@ -151,6 +151,9 @@ func (n *NodeMgr) GasPriceAnalyse() {
 
 				latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
 				symbolList, alreadyOnChain = n.cDecoder.DecodeToSymbol(&pendingTx, latestBlock)
+				if !alreadyOnChain {
+					utils.Logger.Infof("看到竞争对手pending，解析symbol=%v, hash=%v, pending=%v", symbolList, pendingTx.Hash, string(txByte))
+				}
 			}
 
 			if len(symbolList) != 0 && len(n.Signals) != 0 {
@@ -180,7 +183,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			var lastPendingTx *types.Transaction
 			if len(n.PendingTxList) > 0 {
 				lastPendingTx = n.PendingTxList[len(n.PendingTxList)-1]
-				utils.Logger.Infof("收到signal最近的一条tx hash=%v, tx block=%v, signalTradeBlockNum=%v", lastPendingTx.Hash(), n.GetPendingBlockNum(), signal.TradeBlockNum)
+				utils.Logger.Infof("收到signal最近的一条tx hash=%v, tx block=%v, signalTradeBlockNum=%v, time=%v", lastPendingTx.Hash(), n.GetPendingBlockNum(), signal.TradeBlockNum, time.Now())
 			}
 		}
 	}
@@ -471,7 +474,6 @@ func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx, latestBlock *ty
 				symbolList = append(symbolList, symbol)
 			}
 		}
-		utils.Logger.Infof("看到竞争对手pending，解析symbol=%v, hash=%v", symbolList, pendingTx.Hash)
 	}
 	return symbolList, alreadyOnChain
 }
