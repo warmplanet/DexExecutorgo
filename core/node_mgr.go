@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/warmplanet/proto/go/common"
@@ -15,6 +16,8 @@ import (
 	"github.com/warmplanet/proto/go/ordertool_wap"
 	"github.com/warmplanet/proto/go/sdk"
 	"github.com/warmplanet/proto/go/sdk/broker"
+	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -122,7 +125,11 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			utils.Logger.Info("get ctx signal, exit to receiveMessage")
 			n.NodeClient.wsClient.Close()
 		case tx, _ := <-n.PendingTxChan:
-			var pendingTx PendingTx
+			var (
+				alreadyOnChain bool
+				pendingTx      PendingTx
+			)
+
 			txByte, _ := tx.MarshalJSON()
 			err := json.Unmarshal(txByte, &pendingTx)
 			if err != nil {
@@ -136,32 +143,15 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			if dexName, ok := n.RouterMap[toAddress]; ok {
 				symbolList = n.rDecoder.DecodeToSymbol(dexName, &pendingTx)
 			} else if okk, _ := n.EnemiesMap[toAddress]; okk {
-				var sg sync.WaitGroup
-				sg.Add(2)
-				go func() {
-					symbolList = n.cDecoder.DecodeToSymbol(&pendingTx)
-				}()
-				go func() {
-					receipt, err := n.NodeClient.client.TransactionReceipt(n.NodeClient.ctx, tx.Hash())
-					if err != nil {
-						fmt.Println(err)
-						return
-					}
-					latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
-					fmt.Println(receipt.BlockNumber.Int64(), latestBlock.Number.Int64())
-				}()
-				sg.Wait()
-
+				latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
+				symbolList, alreadyOnChain = n.cDecoder.DecodeToSymbol(&pendingTx, latestBlock)
 			}
 
-			if len(symbolList) != 0 {
-				//key := fmt.Sprintf("%v_%v", symbolList[0], n.GetPendingBlockNum())
-				//tmpMap[key] = pendingTx
-				//latestBlock := n.HeaderWsList[len(n.HeaderWsList)-1]
-				//fmt.Println("dmz_test", toAddress, tx.Hash(), time.Now().Sub(tx.Time()), tx.Time().Unix()-int64(latestBlock.Time), latestBlock.Time, latestBlock.Number, n.GetPendingBlockNum())
-				//n.TransferTest()
-				if len(n.Signals) != 0 {
-					n.CheckRebuildTxOrNot(symbolList)
+			if len(symbolList) != 0 && len(n.Signals) != 0 {
+				if alreadyOnChain {
+					n.CancelTx()
+				} else {
+					n.RebuildTx(symbolList, tx.GasPrice())
 				}
 			}
 		case signal, _ := <-n.SignalChan:
@@ -184,21 +174,26 @@ func (n *NodeMgr) GetPendingBlockNum() int64 {
 	return lastPendingBlock.Number.Int64() + 1
 }
 
-func (n *NodeMgr) CheckRebuildTxOrNot(symbolList []string) bool {
-	calBlockNum := n.GetPendingBlockNum()
-	signal := n.Signals[len(n.Signals)-1]
+func (n *NodeMgr) RebuildTx(symbolList []string, txGasPrice *big.Int) bool {
+	curSignal := n.GetLastSignalBySymbol(symbolList[0])
 
-	fmt.Println(calBlockNum, signal, signal.TradeBlockNum)
-	// 时间校验待添加
-	if signal.TradeBlockNum == calBlockNum {
-		fmt.Println(signal.SignalBlockTime, time.Now().Second())
-		//n.Trade(signal)
+	// 区块校验
+	if curSignal.TradeBlockNum == n.GetPendingBlockNum() {
+		newGasPrice := big.NewInt(1)
+		newGasPrice.Add(newGasPrice, txGasPrice)
+		baseGasPrice := big.NewInt(int64(curSignal.BaseGasPrice * math.Pow(10, 9)))
+		newGasPrice.Sub(newGasPrice, baseGasPrice)
+		n.Trade(curSignal, newGasPrice)
 	}
-
+	// 时间校验待添加
 	return false
 }
 
-func (n *NodeMgr) Trade(signal Signal) {
+func (n *NodeMgr) CancelTx() bool {
+	return false
+}
+
+func (n *NodeMgr) Trade(signal Signal, newGasPrice *big.Int) {
 	var (
 		side         order.TradeSide
 		token, quote string
@@ -222,8 +217,8 @@ func (n *NodeMgr) Trade(signal Signal) {
 			GasLimit:             uint64(signal.BuildTx.Gas),
 			Nonce:                uint64(signal.BuildTx.Nonce),
 			Data:                 []byte(signal.BuildTx.Data),
-			MaxPriorityFeePerGas: uint64(signal.BuildTx.GasPrice),
-			MaxFeePerGas:         uint64(signal.BuildTx.GasPrice),
+			MaxPriorityFeePerGas: newGasPrice.Uint64(),
+			MaxFeePerGas:         uint64(signal.BuildTx.MaxFeePerGas),
 			Value:                strconv.Itoa(signal.BuildTx.Value),
 		},
 	}
@@ -284,7 +279,20 @@ func (n *NodeMgr) Trade(signal Signal) {
 	pubErr := n.Publisher.PublishMsg(DATA_ORDER_TOOL, &ter)
 	if pubErr != nil {
 		utils.Logger.Errorf("publish update gasPrice order error, err=%v", pubErr)
+		return
 	}
+	terByte, _ := json.Marshal(ter)
+	utils.Logger.Infof("pub ter msg, subjects=%v, msg=%v", DATA_ORDER_TOOL, string(terByte))
+}
+
+func (n *NodeMgr) GetLastSignalBySymbol(symbol string) (signal Signal) {
+	for i := len(n.Signals) - 1; i >= 0; i -= 1 {
+		signal = n.Signals[i]
+		if signal.Symbol == symbol {
+			return
+		}
+	}
+	return
 }
 
 type Decoder interface {
@@ -378,7 +386,7 @@ func NewCallClientDecoder(ethClient *ethclient.Client, pairSymbolMap map[string]
 	return c
 }
 
-func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx) []string {
+func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx, latestBlock *types.Header) ([]string, bool) {
 	var (
 		addresses []string
 		result    interface{}
@@ -395,29 +403,53 @@ func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx) []string {
 				OnlyTopCall: false,
 			},
 		}
+		wg             sync.WaitGroup
+		alreadyOnChain = true
 	)
-	err := c.EthClient.Client().Call(&result, "debug_traceCall", paramsa, "latest", paramsb)
-	if err != nil {
-		utils.Logger.Errorf("call debug_traceCall error, err: %v", err)
-		return addresses
-	}
 
-	tmp, _ := json.Marshal(result)
-	var resTraceCall CallsRes
-	err = json.Unmarshal(tmp, &resTraceCall)
-	if err == nil {
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+
+		err := c.EthClient.Client().Call(&result, "debug_traceCall", paramsa, "latest", paramsb)
+		if err != nil {
+			utils.Logger.Errorf("call debug_traceCall error, err: %v", err)
+			return
+		}
+
+		tmp, _ := json.Marshal(result)
+		var resTraceCall CallsRes
+		err = json.Unmarshal(tmp, &resTraceCall)
+		if err != nil {
+			utils.Logger.Errorf("json unmarshal CallsRes error, err: %v", err)
+			return
+		}
 		addresses = c.GetAllAddress([]CallsRes{resTraceCall})
-	} else {
-		return addresses
-	}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		_, receiptErr := c.EthClient.TransactionReceipt(context.Background(), common2.HexToHash(pendingTx.Hash))
+		if receiptErr != nil {
+			utils.Logger.Errorf("get pendingTransactionReceipt failed, err=%v", receiptErr)
+			alreadyOnChain = false
+		}
+		//if receipt.BlockNumber.Int64() < latestBlock.Number.Int64() {
+		//	isNotFound = true
+		//}
+	}()
+	wg.Wait()
 
 	var symbolList []string
-	for _, address := range addresses {
-		if symbol, ok := c.PairSymbolMap[address]; ok {
-			symbolList = append(symbolList, symbol)
+	if !alreadyOnChain {
+		for _, address := range addresses {
+			if symbol, ok := c.PairSymbolMap[address]; ok {
+				symbolList = append(symbolList, symbol)
+			}
 		}
 	}
-	return symbolList
+	return symbolList, alreadyOnChain
 }
 
 func (c *CallClientDecoder) GetAllAddress(callsRes []CallsRes) (addresses []string) {

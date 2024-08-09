@@ -40,6 +40,7 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 	if !exist {
 		return nil
 	}
+	utils.Logger.Infof("收到一个signal, key=%v, signal=%v", key, string(data))
 
 	var signal Signal
 	err := json.Unmarshal(data, &signal)
