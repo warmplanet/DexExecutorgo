@@ -180,8 +180,8 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			var lastPendingTx *types.Transaction
 			if len(n.PendingTxList) > 0 {
 				lastPendingTx = n.PendingTxList[len(n.PendingTxList)-1]
+				utils.Logger.Infof("收到signal最近的一条tx hash=%v, tx block=%v, signalTradeBlockNum=%v", lastPendingTx.Hash(), n.GetPendingBlockNum(), signal.TradeBlockNum)
 			}
-			utils.Logger.Infof("收到signal最近的一条tx hash=%v, tx block=%v, signalTradeBlockNum=%v", lastPendingTx.Hash(), n.GetPendingBlockNum(), signal.TradeBlockNum)
 		}
 	}
 }
