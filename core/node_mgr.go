@@ -34,13 +34,13 @@ type NodeMgr struct {
 	PendingTxChan chan *types.Transaction
 	HeaderWsList  []*types.Header
 	Signals       []Signal
-	SignalChan    chan Signal
+	SignalChan    chan []byte
 	Publisher     *broker.Pub
 	rDecoder      *RouterDecoder
 	cDecoder      *CallClientDecoder
 }
 
-func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signals []Signal, signalChan chan Signal,
+func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signalChan chan []byte,
 	router map[string]string, addrTokens map[string]string, enemiesMap map[string]bool, pairSymbolMap map[string]string) *NodeMgr {
 	pendingTxChan := make(chan *types.Transaction)
 	nodeCli, err := NewDexNodeClient(ctx, rpcUrl, wsUrl, pendingTxChan)
@@ -59,7 +59,7 @@ func NewNodeMgr(ctx context.Context, rpcUrl, wsUrl string, signals []Signal, sig
 		EnemiesMap:    enemiesMap,
 		PendingTxChan: pendingTxChan,
 		Publisher:     NewNatsPublisher(),
-		Signals:       signals,
+		Signals:       make([]Signal, 0),
 		SignalChan:    signalChan,
 		rDecoder:      rDecoder,
 		cDecoder:      NewCallClientDecoder(nodeCli.client, pairSymbolMap),
@@ -153,6 +153,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 				symbolList, alreadyOnChain = n.cDecoder.DecodeToSymbol(&pendingTx, latestBlock)
 			}
 
+			utils.Logger.Infof("dmz_test, symbolLen=%v, signalsLen=%v", len(symbolList), len(n.Signals))
 			if len(symbolList) != 0 && len(n.Signals) != 0 {
 				utils.Logger.Infof("竞争对手可能抢交易, symbol=%v", symbolList)
 				if alreadyOnChain {
@@ -161,8 +162,26 @@ func (n *NodeMgr) GasPriceAnalyse() {
 					n.RebuildTx(symbolList, tx.GasPrice())
 				}
 			}
-		case signal, _ := <-n.SignalChan:
-			lastPendingTx := n.PendingTxList[len(n.PendingTxList)-1]
+		case data, _ := <-n.SignalChan:
+			var signal Signal
+			err := json.Unmarshal(data, &signal)
+			if err != nil {
+				utils.Logger.Errorf("signal obj json unmarshal error, err=%v", err)
+				continue
+			}
+
+			utils.Logger.Infof("收到一个signal, projectId=%v, registerId=%v, hedgeId=%v, signal=%v", signal.Server, signal.RegistId, signal.HedgeId, string(data))
+			if len(n.Signals) > 200 {
+				startSignal, endSignal := n.Signals[0], n.Signals[100]
+				n.Signals = n.Signals[100:]
+				utils.Logger.Infof("delete signal in signalList, startTime: %v, endTime: %v", startSignal.UpdateTime, endSignal.UpdateTime)
+			}
+			n.Signals = append(n.Signals, signal)
+
+			var lastPendingTx *types.Transaction
+			if len(n.PendingTxList) > 0 {
+				lastPendingTx = n.PendingTxList[len(n.PendingTxList)-1]
+			}
 			utils.Logger.Infof("收到signal最近的一条tx hash=%v, tx block=%v, signalTradeBlockNum=%v", lastPendingTx.Hash(), n.GetPendingBlockNum(), signal.TradeBlockNum)
 		}
 	}
