@@ -201,7 +201,7 @@ func (n *NodeMgr) GetPendingBlockNum() int64 {
 
 func (n *NodeMgr) RebuildTx(symbolList []string, txGasPrice *big.Int) bool {
 	curSignal := n.GetLastSignalBySymbol(symbolList[0])
-	utils.Logger.Infof("竞争对手触发，获取最近signal, signal=%v", curSignal)
+	utils.Logger.Infof("竞争对手触发，获取最近signal, signal=%v, traderBlockNum=%v, pendingBlockNum=%v", curSignal, curSignal.TradeBlockNum, n.GetPendingBlockNum())
 
 	// 区块校验
 	if curSignal.TradeBlockNum >= n.GetPendingBlockNum() {
