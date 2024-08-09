@@ -40,7 +40,6 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 	if !exist {
 		return nil
 	}
-	utils.Logger.Infof("收到一个signal, key=%v, signal=%v", key, string(data))
 
 	var signal Signal
 	err := json.Unmarshal(data, &signal)
@@ -49,6 +48,7 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 		return nil
 	}
 
+	utils.Logger.Infof("收到一个signal, key=%v, registerId=%v, hedgeId=%v, signal=%v", key, signal.RegistId, signal.HedgeId, string(data))
 	if len(signals) > 200 {
 		startSignal, endSignal := signals[0], signals[100]
 		signals = signals[100:]

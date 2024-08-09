@@ -148,6 +148,7 @@ func (n *NodeMgr) GasPriceAnalyse() {
 			}
 
 			if len(symbolList) != 0 && len(n.Signals) != 0 {
+				utils.Logger.Infof("竞争对手可能抢交易, symbol=%v", symbolList)
 				if alreadyOnChain {
 					n.CancelTx()
 				} else {
@@ -176,6 +177,7 @@ func (n *NodeMgr) GetPendingBlockNum() int64 {
 
 func (n *NodeMgr) RebuildTx(symbolList []string, txGasPrice *big.Int) bool {
 	curSignal := n.GetLastSignalBySymbol(symbolList[0])
+	utils.Logger.Infof("竞争对手触发，获取最近signal, signal=%v", curSignal)
 
 	// 区块校验
 	if curSignal.TradeBlockNum == n.GetPendingBlockNum() {
