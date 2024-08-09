@@ -450,6 +450,7 @@ func (c *CallClientDecoder) DecodeToSymbol(pendingTx *PendingTx, latestBlock *ty
 				symbolList = append(symbolList, symbol)
 			}
 		}
+		utils.Logger.Infof("看到竞争对手pending，解析symbol=%v", symbolList)
 	}
 	return symbolList, alreadyOnChain
 }
