@@ -2,6 +2,7 @@ package core
 
 import (
 	"DexExecutorgo/config"
+	"DexExecutorgo/utils"
 	"github.com/warmplanet/proto/go/sdk/broker"
 	"strings"
 )
@@ -32,6 +33,7 @@ func SignalMsgHandler(subject string, data []byte) []byte {
 		return nil
 	}
 
+	utils.Logger.Infof("dmz_test2222")
 	signalChan <- data
 	return nil
 }
