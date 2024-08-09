@@ -153,7 +153,6 @@ func (n *NodeMgr) GasPriceAnalyse() {
 				symbolList, alreadyOnChain = n.cDecoder.DecodeToSymbol(&pendingTx, latestBlock)
 			}
 
-			utils.Logger.Infof("dmz_test, symbolLen=%v, signalsLen=%v", len(symbolList), len(n.Signals))
 			if len(symbolList) != 0 && len(n.Signals) != 0 {
 				utils.Logger.Infof("竞争对手可能抢交易, symbol=%v", symbolList)
 				if alreadyOnChain {

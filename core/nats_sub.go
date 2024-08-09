@@ -2,7 +2,6 @@ package core
 
 import (
 	"DexExecutorgo/config"
-	"DexExecutorgo/utils"
 	"github.com/warmplanet/proto/go/sdk/broker"
 	"strings"
 )
@@ -26,7 +25,6 @@ func StartNatsSubscribe(key string, handlers broker.SubHandlers) {
 }
 
 func SignalMsgHandler(subject string, data []byte) []byte {
-	utils.Logger.Infof("dmz_test2222")
 	keyList := strings.Split(subject, ".")
 	key := keyList[4]
 	signalChan, exist := ReceiveSignalChan[key]
